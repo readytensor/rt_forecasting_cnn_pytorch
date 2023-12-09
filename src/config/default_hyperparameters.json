@@ -1,0 +1,6 @@
+{
+  "encode_to_decode_ratio": 4,
+  "latent_dim": 50,
+  "activation": "tanh",
+  "use_exogenous": true
+}

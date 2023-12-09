@@ -1,0 +1,11 @@
+series,date,prediction
+river_flow,2002-12-21,0.1018
+river_flow,2002-12-22,0.0471
+river_flow,2002-12-23,-0.0901
+river_flow,2002-12-24,-0.1744
+river_flow,2002-12-25,-0.2793
+river_flow,2002-12-26,-0.3124
+river_flow,2002-12-27,-0.2447
+river_flow,2002-12-28,-0.2283
+river_flow,2002-12-29,-0.1399
+river_flow,2002-12-30,-0.0041

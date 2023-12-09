@@ -1,0 +1,26 @@
+Error occurred during training. Error: The size of tensor a (10) must match the size of tensor b (64) at non-singleton dimension 1
+Traceback (most recent call last):
+  File "C:\Users\abbus\Documents\GitRepos\rt_repos\rt-models\forecasting\rt_forecasting_cnn_pytorch\src\train.py", line 116, in run_training
+    forecaster = train_predictor_model(
+                 ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\abbus\Documents\GitRepos\rt_repos\rt-models\forecasting\rt_forecasting_cnn_pytorch\src\prediction\predictor_model.py", line 352, in train_predictor_model
+    model.fit(
+  File "C:\Users\abbus\Documents\GitRepos\rt_repos\rt-models\forecasting\rt_forecasting_cnn_pytorch\src\prediction\predictor_model.py", line 222, in fit
+    losses = self._run_training(train_loader, valid_loader, max_epochs,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\abbus\Documents\GitRepos\rt_repos\rt-models\forecasting\rt_forecasting_cnn_pytorch\src\prediction\predictor_model.py", line 242, in _run_training
+    loss = self.criterion(y, preds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\abbus\Documents\GitRepos\rt_repos\rt-models\forecasting\rt_forecasting_cnn_pytorch\venv\Lib\site-packages\torch\nn\modules\module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\abbus\Documents\GitRepos\rt_repos\rt-models\forecasting\rt_forecasting_cnn_pytorch\venv\Lib\site-packages\torch\nn\modules\loss.py", line 536, in forward
+    return F.mse_loss(input, target, reduction=self.reduction)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\abbus\Documents\GitRepos\rt_repos\rt-models\forecasting\rt_forecasting_cnn_pytorch\venv\Lib\site-packages\torch\nn\functional.py", line 3294, in mse_loss
+    expanded_input, expanded_target = torch.broadcast_tensors(input, target)
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\abbus\Documents\GitRepos\rt_repos\rt-models\forecasting\rt_forecasting_cnn_pytorch\venv\Lib\site-packages\torch\functional.py", line 74, in broadcast_tensors
+    return _VF.broadcast_tensors(tensors)  # type: ignore[attr-defined]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: The size of tensor a (10) must match the size of tensor b (64) at non-singleton dimension 1

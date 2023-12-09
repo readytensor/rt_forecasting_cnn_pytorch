@@ -1,0 +1,13 @@
+Error occurred during prediction. Error: expand_dims() missing 1 required positional argument: 'axis'
+Traceback (most recent call last):
+  File "C:\Users\abbus\Documents\GitRepos\rt_repos\rt-models\forecasting\rt_forecasting_cnn_pytorch\src\predict.py", line 134, in run_batch_predictions
+    predictions_arr = predict_with_model(
+                      ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\abbus\Documents\GitRepos\rt_repos\rt-models\forecasting\rt_forecasting_cnn_pytorch\src\prediction\predictor_model.py", line 383, in predict_with_model
+    return model.predict(test_data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\abbus\Documents\GitRepos\rt_repos\rt-models\forecasting\rt_forecasting_cnn_pytorch\src\prediction\predictor_model.py", line 297, in predict
+    preds = np.expand_dims(preds)
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "<__array_function__ internals>", line 198, in expand_dims
+TypeError: expand_dims() missing 1 required positional argument: 'axis'

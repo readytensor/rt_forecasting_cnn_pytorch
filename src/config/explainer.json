@@ -1,0 +1,4 @@
+{
+  "max_local_explanations": 5,
+  "max_saved_train_data_length": 10000
+}
