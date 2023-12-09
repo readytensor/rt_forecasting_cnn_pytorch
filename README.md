@@ -1,1 +1,1 @@
-# NBeats Forecasting Model Implementation as per Ready Tensor specifications.
+# CNN Forecasting Model Implementation in PyTorch as per Ready Tensor specifications.
