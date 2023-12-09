@@ -272,11 +272,11 @@ class Forecaster:
             # Show progress
             if verbose == 1:
                 if epoch % self.print_period == 0 or epoch == max_epochs-1:
-                    print(f'Epoch: {epoch+1}/{max_epochs}, loss: {np.round(loss.item(), 5)}')
+                    print(f'Epoch: {epoch+1}/{max_epochs}, loss: {np.round(current_loss, 5)}')
             
         return losses
-        
-    
+
+
     def predict(self, data):
         X = self._get_X_and_y(data, is_train=False)[0]
         pred_X = torch.FloatTensor(X)
