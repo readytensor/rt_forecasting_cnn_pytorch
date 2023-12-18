@@ -120,6 +120,10 @@ def set_seeds(seed_value: int) -> None:
         random.seed(seed_value)
         np.random.seed(seed_value)
         T.manual_seed(seed_value)
+        T.cuda.manual_seed(seed_value)
+        T.cuda.manual_seed_all(seed_value)  # For multi-GPU setups
+        T.backends.cudnn.deterministic = True
+        T.backends.cudnn.benchmark = False
     else:
         raise ValueError(f"Invalid seed value: {seed_value}. Cannot set seeds.")
 

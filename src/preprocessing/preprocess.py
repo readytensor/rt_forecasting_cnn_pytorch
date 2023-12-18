@@ -1,7 +1,7 @@
 import os
 import random
 import sys
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Tuple, Union, Optional
 
 import numpy as np
 import pandas as pd
@@ -207,3 +207,58 @@ def inverse_scale_predictions(predictions: np.ndarray, pipeline: Pipeline) -> np
         return minmax_scaler.inverse_transform(predictions)
     else:
         raise ValueError("MinMaxScaler not found in the pipeline.")
+
+
+def offset_future_covariates_per_series(history_data: pd.DataFrame,
+                                        forecast_data: Optional[pd.DataFrame],
+                                        forecast_length: int,
+                                        data_schema: Any) -> pd.DataFrame:
+    """
+    Offsets the future covariates for each series in the historical data by the
+    specified forecast length.
+    If forecast data is provided, use it to fill the last forecast_length rows
+    for each series.
+
+    Args:
+        history_data (pd.DataFrame): The historical data containing past observations
+                                     for multiple series.
+        forecast_data (Optional[pd.DataFrame]): The future covariates data for the 
+                                                forecast period.
+        forecast_length (int): The length of the forecast window.
+        data_schema (DataSchema): An object that contains the schema of the data, 
+                                  including lists of past and future covariate names.
+
+    Returns:
+        pd.DataFrame: The modified historical data with future covariates offset
+                      for each series.
+    """
+    # Return data as-is if there are no future covariates
+    if len(data_schema.future_covariates) == 0:
+        return history_data
+
+    # Offset future covariates for each series separately
+    offset_history_data = history_data.copy()
+    offset_history_data = offset_history_data.sort_values(
+        by=[data_schema.id_col, data_schema.time_col]
+    )
+    for series_id, group in history_data.groupby(data_schema.id_col):
+        for col in data_schema.future_covariates:
+            offset_history_data.loc[group.index, col] = group[col].shift(-forecast_length)
+
+    # If forecast data is provided, use it to fill the last forecast_length rows for each series
+    if forecast_data is not None:
+        forecast_data_copy = forecast_data.copy()
+        forecast_data_copy = forecast_data_copy.sort_values(
+            by=[data_schema.id_col, data_schema.time_col]
+        )
+        for series_id, group in forecast_data_copy.groupby(data_schema.id_col):
+            for col in data_schema.future_covariates:
+                last_index = \
+                    offset_history_data[offset_history_data[data_schema.id_col] == series_id]\
+                    .index[-forecast_length:]
+                offset_history_data.loc[last_index, col] = group[col].values[:forecast_length]
+
+    # fill nans with zero - these zeros dont matter, but null values cause issues so filling with zero
+    for col in data_schema.future_covariates:
+        offset_history_data[col] = offset_history_data[col].fillna(-100)
+    return offset_history_data

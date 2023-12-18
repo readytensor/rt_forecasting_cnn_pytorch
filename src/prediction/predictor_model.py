@@ -104,6 +104,7 @@ class Net(Module):
         
         x = self.flatten(x)        
         x = self.relu(x)
+        x = self.dropout(x)
         x = self.fc(x)
 
         out = x
@@ -333,7 +334,7 @@ class Forecaster:
 
     def __str__(self):
         # sort params alphabetically for unit test to run successfully
-        return f"Model name: {self.model_name}"
+        return f"Model name: {self.MODEL_NAME}"
 
 
 def train_predictor_model(

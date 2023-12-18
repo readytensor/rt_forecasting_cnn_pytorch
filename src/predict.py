@@ -12,7 +12,7 @@ from prediction.predictor_model import load_predictor_model, predict_with_model
 from preprocessing.preprocess import (
     load_pipeline_of_type,
     fit_transform_with_pipeline,
-    inverse_scale_predictions
+    inverse_scale_predictions,
 )
 from schema.data_schema import load_saved_schema
 from utils import (
