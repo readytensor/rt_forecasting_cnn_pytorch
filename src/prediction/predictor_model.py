@@ -7,15 +7,12 @@ import math
 import joblib
 import numpy as np
 import pandas as pd
-# from prophet import Prophet
-from multiprocessing import Pool, cpu_count
-from sklearn.exceptions import NotFittedError
 
 warnings.filterwarnings("ignore")
 
 import torch
 import torch.optim as optim
-from torch.nn import Flatten, Conv1d, ReLU, Linear, Embedding, Module, CrossEntropyLoss, MSELoss, Tanh, Dropout
+from torch.nn import Flatten, Conv1d, ReLU, Linear, Module, MSELoss, Tanh, Dropout
 from torch.utils.data import Dataset, DataLoader
 
 
@@ -66,7 +63,6 @@ class CustomDataset(Dataset):
         return len(self.x)
 
 
-
 class Net(Module):
     def __init__(self, feat_dim, latent_dim, n_cnnlayers, decode_len, activation):
         super(Net, self).__init__()
@@ -87,7 +83,6 @@ class Net(Module):
         self.conv3 = Conv1d(
             in_channels=dim2, out_channels=dim3, kernel_size=16, stride=1, padding='same')
         self.relu = ReLU()
-        self.dropout = Dropout()
         self.fc = Linear(in_features=dim3*self.decode_len,  out_features=self.decode_len)
         self.flatten = Flatten()
 
@@ -102,9 +97,8 @@ class Net(Module):
         x = x.permute(0,2,1)
         x = x[:, -self.decode_len:, :]
         
-        x = self.flatten(x)        
+        x = self.flatten(x)
         x = self.relu(x)
-        x = self.dropout(x)
         x = self.fc(x)
 
         out = x
@@ -115,7 +109,7 @@ class Net(Module):
         pp=0
         for p in list(self.parameters()):
             nn=1
-            for s in list(p.size()):                
+            for s in list(p.size()):
                 nn = nn*s
             pp += nn
         return pp      
