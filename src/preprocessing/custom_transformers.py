@@ -2,8 +2,6 @@ from typing import List, Union
 
 import numpy as np
 import pandas as pd
-import sys
-import random
 from sklearn.base import BaseEstimator, TransformerMixin
 
 
@@ -433,7 +431,7 @@ class TimeSeriesMinMaxScaler(BaseEstimator, TransformerMixin):
 
     def fit(self, X: np.ndarray, y=None) -> 'TimeSeriesMinMaxScaler':
         """
-        Fits the scaler on the history part of the time-series data.
+        No-op
 
         Args:
             X (np.ndarray): Input time-series data of shape [N, T, D].
@@ -442,15 +440,6 @@ class TimeSeriesMinMaxScaler(BaseEstimator, TransformerMixin):
         Returns:
             TimeSeriesMinMaxScaler: The fitted scaler.
         """
-        if self.encode_len > X.shape[1]:
-            raise ValueError(f"Expected sequence length for scaling >= {self.encode_len}."
-                             f" Found length {X.shape[1]}.")
-
-        # Calculate min, max, and range for scaling
-        self.min_vals_per_d = np.min(X[:, :self.encode_len, :], axis=1, keepdims=True)
-        self.max_vals_per_d = np.max(X[:, :self.encode_len, :], axis=1, keepdims=True)
-        self.range_per_d = self.max_vals_per_d - self.min_vals_per_d
-        self.range_per_d = np.where(self.range_per_d == 0, -1, self.range_per_d)
         return self
 
     def transform(self, X: np.ndarray) -> np.ndarray:
@@ -463,9 +452,14 @@ class TimeSeriesMinMaxScaler(BaseEstimator, TransformerMixin):
         Returns:
             np.ndarray: The transformed data of shape [N, T, D].
         """
-        if not (self.min_vals_per_d.shape[0] == X.shape[0]
-                or not self.min_vals_per_d.shape[2] == X.shape[2]):
-            raise ValueError("Dimension mismatch between the input data and the fitted data.")
+        if self.encode_len > X.shape[1]:
+            raise ValueError(f"Expected sequence length for scaling >= {self.encode_len}."
+                             f" Found length {X.shape[1]}.")
+        # Calculate min, max, and range for scaling
+        self.min_vals_per_d = np.min(X[:, :self.encode_len, :], axis=1, keepdims=True)
+        self.max_vals_per_d = np.max(X[:, :self.encode_len, :], axis=1, keepdims=True)
+        self.range_per_d = self.max_vals_per_d - self.min_vals_per_d
+        self.range_per_d = np.where(self.range_per_d == 0, -1, self.range_per_d)
         X_scaled = np.where(self.range_per_d == -1, 0, (X - self.min_vals_per_d) / self.range_per_d)
         X_scaled = np.clip(X_scaled, -self.upper_bound, self.upper_bound)
         return X_scaled
