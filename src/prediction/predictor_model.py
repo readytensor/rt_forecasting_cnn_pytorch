@@ -1,7 +1,7 @@
 import os
 import sys
 import warnings
-from typing import List, Union
+from typing import Callable
 import math
 
 import joblib
@@ -11,14 +11,15 @@ import pandas as pd
 warnings.filterwarnings("ignore")
 
 import torch
+import torch as T
 import torch.optim as optim
-from torch.nn import Flatten, Conv1d, ReLU, Linear, Module, MSELoss, Tanh, Dropout
+from torch.nn import Flatten, Conv1d, ReLU, Linear, Module, MSELoss
 from torch.utils.data import Dataset, DataLoader
+import torch.nn.functional as F
 
 
 # Check for GPU availability
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-
 print("device used: ", device)
 
 PREDICTOR_FILE_NAME = "predictor.joblib"
@@ -28,7 +29,39 @@ HISTORY_FNAME = "history.json"
 COST_THRESHOLD = float("inf")
 
 
-def get_patience_factor(N): 
+def get_activation(activation: str) -> Callable:
+    """
+    Return the activation function based on the input string.
+
+    This function returns a callable activation function from the
+    torch.nn.functional package.
+
+    Args:
+        activation (str): Name of the activation function.
+
+    Returns:
+        Callable: The requested activation function. If 'none' is specified,
+        it will return an identity function.
+
+    Raises:
+        Exception: If the activation string does not match any known
+        activation functions ('relu', 'tanh', or 'none').
+
+    """
+    if activation == "tanh":
+        return F.tanh
+    elif activation == "relu":
+        return F.relu
+    elif activation == "none":
+        return lambda x: x  # Identity function, doesn't change input
+    else:
+        raise ValueError(
+            f"Error: Unrecognized activation type: {activation}. "
+            "Must be one of ['relu', 'tanh', 'none']."
+        )
+
+
+def get_patience_factor(N):
     # magic number - just picked through trial and error
     if N < 100:
         return 30
@@ -64,17 +97,15 @@ class CustomDataset(Dataset):
 
 
 class Net(Module):
-    def __init__(self, feat_dim, latent_dim, n_cnnlayers, decode_len, activation):
+    def __init__(self, feat_dim, decode_len, activation):
         super(Net, self).__init__()
         self.feat_dim = feat_dim
-        self.latent_dim = latent_dim
-        self.n_rnnlayers = n_cnnlayers
         self.decode_len = decode_len
-        self.activation = activation
+        self.activation = get_activation(activation)
         
-        dim1 = 150
-        dim2 = 75
-        dim3 = 50
+        dim1 = 100
+        dim2 = 50
+        dim3 = 25
         
         self.conv1 = Conv1d(
             in_channels=self.feat_dim, out_channels=dim1, kernel_size=4, stride=1, padding='same')
@@ -82,9 +113,11 @@ class Net(Module):
             in_channels=dim1, out_channels=dim2, kernel_size=8, stride=1, padding='same')
         self.conv3 = Conv1d(
             in_channels=dim2, out_channels=dim3, kernel_size=16, stride=1, padding='same')
-        self.relu = ReLU()
         self.fc = Linear(in_features=dim3*self.decode_len,  out_features=self.decode_len)
         self.flatten = Flatten()
+
+        T.nn.init.xavier_uniform_(self.fc.weight)
+        T.nn.init.zeros_(self.fc.bias)
 
     
     def forward(self, X):
@@ -98,7 +131,7 @@ class Net(Module):
         x = x[:, -self.decode_len:, :]
         
         x = self.flatten(x)
-        x = self.relu(x)
+        x = self.activation(x)
         x = self.fc(x)
 
         out = x
@@ -112,15 +145,7 @@ class Net(Module):
             for s in list(p.size()):
                 nn = nn*s
             pp += nn
-        return pp      
-
-    def get_activation(self):
-        if self.activation == 'relu':
-            return ReLU()
-        elif self.activation == 'tanh':
-            return Tanh()
-        else:
-            raise ValueError(f"Activation {self.activation} is unrecognized. Must be either 'tanh' or 'relu'.")
+        return pp
 
 
 class Forecaster:
@@ -135,8 +160,7 @@ class Forecaster:
             self,
             encode_len:int,
             decode_len:int,
-            feat_dim:int, 
-            latent_dim:int,
+            feat_dim:int,
             activation:str,
             **kwargs
         ):
@@ -144,17 +168,15 @@ class Forecaster:
         self.encode_len = encode_len
         self.decode_len = decode_len
         self.feat_dim = feat_dim
-        self.latent_dim = latent_dim
         self.activation = activation
         self.batch_size = 64
 
-        self.net = Net(feat_dim = self.feat_dim,
-                       latent_dim = self.latent_dim,
-                       n_cnnlayers = 3,
-                       decode_len = self.decode_len,
-                       activation = self.activation,
-                       ) 
-        
+        self.net = Net(
+            feat_dim = self.feat_dim,
+            decode_len = self.decode_len,
+            activation = self.activation,
+        )
+
         self.net.to(device)
         # print(self.net.get_num_parameters()) ; sys.exit()
         self.criterion = MSELoss()
@@ -311,8 +333,7 @@ class Forecaster:
         model_params = {
                 "encode_len": self.encode_len, 
                 "decode_len": self.decode_len, 
-                "feat_dim": self.feat_dim, 
-                "latent_dim": self.latent_dim,
+                "feat_dim": self.feat_dim,
                 "activation": self.activation,
         }
         joblib.dump(model_params, os.path.join(model_path, MODEL_PARAMS_FNAME))
