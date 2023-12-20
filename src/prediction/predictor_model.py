@@ -72,9 +72,9 @@ class Net(Module):
         self.decode_len = decode_len
         self.activation = activation
         
-        dim1 = 100
-        dim2 = 50
-        dim3 = 25
+        dim1 = 150
+        dim2 = 75
+        dim3 = 50
         
         self.conv1 = Conv1d(
             in_channels=self.feat_dim, out_channels=dim1, kernel_size=4, stride=1, padding='same')
