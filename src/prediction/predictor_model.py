@@ -102,11 +102,11 @@ class Net(Module):
         self.feat_dim = feat_dim
         self.decode_len = decode_len
         self.activation = get_activation(activation)
-        
+
         dim1 = 100
         dim2 = 50
         dim3 = 25
-        
+
         self.conv1 = Conv1d(
             in_channels=self.feat_dim, out_channels=dim1, kernel_size=4, stride=1, padding='same')
         self.conv2 = Conv1d(
@@ -116,28 +116,19 @@ class Net(Module):
         self.fc = Linear(in_features=dim3*self.decode_len,  out_features=self.decode_len)
         self.flatten = Flatten()
 
-        T.nn.init.xavier_uniform_(self.fc.weight)
-        T.nn.init.zeros_(self.fc.bias)
-
-    
     def forward(self, X):
         x = X.permute(0, 2, 1)
-        
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
-        
         x = x.permute(0,2,1)
         x = x[:, -self.decode_len:, :]
-        
         x = self.flatten(x)
         x = self.activation(x)
         x = self.fc(x)
-
         out = x
         return out
-    
-               
+
     def get_num_parameters(self):
         pp=0
         for p in list(self.parameters()):
