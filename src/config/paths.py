@@ -31,8 +31,6 @@ SAVED_SCHEMA_DIR_PATH = os.path.join(MODEL_ARTIFACTS_PATH, "schema")
 PREPROCESSING_DIR_PATH = os.path.join(MODEL_ARTIFACTS_PATH, "preprocessing")
 # Name of the predictor model file inside artifacts directory
 PREDICTOR_DIR_PATH = os.path.join(MODEL_ARTIFACTS_PATH, "predictor")
-# Name of the explainer file inside artifacts directory
-EXPLAINER_DIR_PATH = os.path.join(MODEL_ARTIFACTS_PATH, "explainer")
 
 # Path to outputs
 OUTPUT_DIR = os.path.join(MODEL_INPUTS_OUTPUTS, "outputs")
@@ -40,8 +38,6 @@ OUTPUT_DIR = os.path.join(MODEL_INPUTS_OUTPUTS, "outputs")
 PREDICTIONS_DIR = os.path.join(OUTPUT_DIR, "predictions")
 # Name of the file containing the predictions
 PREDICTIONS_FILE_PATH = os.path.join(PREDICTIONS_DIR, "predictions.csv")
-# Path to HPT results directory inside outputs directory
-HPT_OUTPUTS_DIR = os.path.join(OUTPUT_DIR, "hpt_outputs")
 
 # Path to logs directory inside outputs directory
 ERRORS_DIR = os.path.join(OUTPUT_DIR, "errors")
@@ -63,7 +59,3 @@ PREPROCESSING_CONFIG_FILE_PATH = os.path.join(CONFIG_DIR, "preprocessing.json")
 DEFAULT_HYPERPARAMETERS_FILE_PATH = os.path.join(
     CONFIG_DIR, "default_hyperparameters.json"
 )
-# Path to hyperparameter tuning config file
-HPT_CONFIG_FILE_PATH = os.path.join(CONFIG_DIR, "hpt.json")
-# Path to explainer (explainable AI or XAI) config file
-EXPLAINER_CONFIG_FILE_PATH = os.path.join(CONFIG_DIR, "explainer.json")

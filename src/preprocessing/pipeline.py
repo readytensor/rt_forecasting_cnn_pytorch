@@ -32,7 +32,7 @@ def create_preprocess_pipelines(
     if use_exogenous is False:
         covariates_to_use = []
     else:
-        covariates_to_use = data_schema.past_covariates
+        covariates_to_use = data_schema.past_covariates + data_schema.static_covariates
     # Common steps for both train and inference pipelines
     common_steps = [
         ("column_selector", transformers.ColumnSelector(

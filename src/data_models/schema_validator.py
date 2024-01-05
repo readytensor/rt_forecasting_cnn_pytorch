@@ -94,6 +94,7 @@ class SchemaModel(BaseModel):
     forecastTarget: ForecastTarget
     pastCovariates: List[Covariate]
     futureCovariates: List[Covariate]
+    staticCovariates: List[Covariate]
 
     @validator("modelCategory", allow_reuse=True)
     def valid_problem_category(cls, v):

@@ -16,6 +16,16 @@ The following are the requirements for using your data with this model:
 
 ---
 
+### Covariates Support:
+
+- Past ✅
+- Future ❌
+- Static ✅
+
+> > This implementation treats static covariates as past covariates.
+
+---
+
 Here are the highlights of this implementation: <br/>
 
 - A **CNN Forecaster** algorithm built using **PyTorch**

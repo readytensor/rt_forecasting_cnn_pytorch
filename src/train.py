@@ -1,5 +1,4 @@
-import argparse
-import sys
+import time
 
 from config import paths
 from data_models.data_validator import validate_data
@@ -32,9 +31,6 @@ def run_training(
     preprocessing_dir_path: str = paths.PREPROCESSING_DIR_PATH,
     predictor_dir_path: str = paths.PREDICTOR_DIR_PATH,
     default_hyperparameters_file_path: str = paths.DEFAULT_HYPERPARAMETERS_FILE_PATH,
-    run_tuning: bool = False,
-    hpt_specs_file_path: str = paths.HPT_CONFIG_FILE_PATH,
-    hpt_results_dir_path: str = paths.HPT_OUTPUTS_DIR,
 ) -> None:
     """
     Run the training process and saves model artifacts
@@ -49,11 +45,6 @@ def run_training(
             predictor model.
         default_hyperparameters_file_path (str, optional): The path of the default
             hyperparameters file.
-        run_tuning (bool, optional): Whether to run hyperparameter tuning.
-            Default is False.
-        hpt_specs_file_path (str, optional): The path of the configuration file for
-            hyperparameter tuning.
-        hpt_results_dir_path (str, optional): Dir path where to save the HPT results.
     Returns:
         None
     """
@@ -61,6 +52,7 @@ def run_training(
     try:
 
         logger.info("Starting training...")
+        start = time.time()
         # load and save schema
         logger.info("Loading and saving schema...")
         data_schema = load_json_data_schema(input_schema_dir)
@@ -119,9 +111,10 @@ def run_training(
         # save predictor model
         logger.info("Saving forecaster...")
         save_predictor_model(forecaster, predictor_dir_path)
-
-
-        logger.info("Training completed successfully")
+        
+        end = time.time()
+        elapsed_time = end - start
+        logger.info(f"Training completed in {round(elapsed_time/60., 3)} minutes")
 
     except Exception as exc:
         err_msg = "Error occurred during training."
@@ -133,22 +126,5 @@ def run_training(
         raise Exception(f"{err_msg} Error: {str(exc)}") from exc
 
 
-def parse_arguments() -> argparse.Namespace:
-    """Parse the command line argument that indicates if user wants to run
-    hyperparameter tuning."""
-    parser = argparse.ArgumentParser(description="Train a binary classification model.")
-    parser.add_argument(
-        "-t",
-        "--tune",
-        action="store_true",
-        help=(
-            "Run hyperparameter tuning before training the model. "
-            + "If not set, use default hyperparameters.",
-        ),
-    )
-    return parser.parse_args()
-
-
 if __name__ == "__main__":
-    args = parse_arguments()
-    run_training(run_tuning=args.tune)
+    run_training()

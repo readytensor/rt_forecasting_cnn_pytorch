@@ -1,8 +1,7 @@
-from typing import List
+import time
 
 import numpy as np
 import pandas as pd
-import sys
 
 from config import paths
 from data_models.data_validator import validate_data
@@ -92,6 +91,7 @@ def run_batch_predictions(
 
     try:
         logger.info("Making batch predictions...")
+        start = time.time()
 
         logger.info("Loading schema...")
         data_schema = load_saved_schema(saved_schema_dir_path)
@@ -106,7 +106,7 @@ def run_batch_predictions(
         validated_train_data = validate_data(
             data=train_data, data_schema=data_schema, is_train=True
         )
-        
+
         # we need the test data to return our final predictions with right columns
         logger.info("Loading test data...")
         test_data = read_csv_in_directory(file_dir_path=test_dir)
@@ -160,7 +160,12 @@ def run_batch_predictions(
             dataframe=validated_predictions, file_path=predictions_file_path
         )
 
-        logger.info("Batch predictions completed successfully")
+        end = time.time()
+        elapsed_time = end - start
+        logger.info(
+            "Batch predictions completed "
+            f"in {round(elapsed_time/60., 3)} minutes"
+        )
 
     except Exception as exc:
         err_msg = "Error occurred during prediction."
