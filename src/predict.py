@@ -18,19 +18,20 @@ from utils import (
     read_csv_in_directory,
     read_json_as_dict,
     save_dataframe_as_csv,
-    cast_time_col
+    cast_time_col,
+    TimeAndMemoryTracker,
 )
 
 logger = get_logger(task_name="predict")
 
 
 def create_predictions_dataframe(
-        pred_input: pd.DataFrame,
-        predictions_arr: np.ndarray,
-        prediction_field_name: str,
-        id_field_name: str,
-        time_field_name: str
-    ) -> pd.DataFrame:
+    pred_input: pd.DataFrame,
+    predictions_arr: np.ndarray,
+    prediction_field_name: str,
+    id_field_name: str,
+    time_field_name: str,
+) -> pd.DataFrame:
     """
     Converts the predictions numpy array into a dataframe having the required structure.
 
@@ -48,12 +49,16 @@ def create_predictions_dataframe(
     N_test = pred_input[id_field_name].unique().shape[0]
     T_test = pred_input[time_field_name].unique().shape[0]
     if N_train != N_test:
-        raise ValueError(f"Number of series in test input ({N_test}) does not match"
-                         f"# of series in train data ({N_train})")
+        raise ValueError(
+            f"Number of series in test input ({N_test}) does not match"
+            f"# of series in train data ({N_train})"
+        )
     if T_train != T_test:
-        raise ValueError(f"Length of series in test input ({N_test}) does not match"
-                         f"expected forecast window length ({N_train})")
-    
+        raise ValueError(
+            f"Length of series in test input ({N_test}) does not match"
+            f"expected forecast window length ({N_train})"
+        )
+
     predictions_df = pred_input[[id_field_name, time_field_name]].copy()
     predictions_df.sort_values(by=[id_field_name, time_field_name], inplace=True)
     predictions_df[prediction_field_name] = np.squeeze(predictions_arr).flatten()
@@ -91,7 +96,6 @@ def run_batch_predictions(
 
     try:
         logger.info("Making batch predictions...")
-        start = time.time()
 
         logger.info("Loading schema...")
         data_schema = load_saved_schema(saved_schema_dir_path)
@@ -111,7 +115,8 @@ def run_batch_predictions(
         logger.info("Loading test data...")
         test_data = read_csv_in_directory(file_dir_path=test_dir)
         test_data = cast_time_col(
-            test_data, data_schema.time_col, data_schema.time_col_dtype)
+            test_data, data_schema.time_col, data_schema.time_col_dtype
+        )
         logger.info("Validating test data...")
         validated_test_data = validate_data(
             data=test_data, data_schema=data_schema, is_train=False
@@ -120,8 +125,7 @@ def run_batch_predictions(
         # fit and transform using pipeline and target encoder, then save them
         logger.info("Loading preprocessing pipeline ...")
         inference_pipeline = load_pipeline_of_type(
-            preprocessing_dir_path,
-            pipeline_type="inference"
+            preprocessing_dir_path, pipeline_type="inference"
         )
         _, transformed_train_data = fit_transform_with_pipeline(
             inference_pipeline, validated_train_data
@@ -131,10 +135,10 @@ def run_batch_predictions(
         predictor_model = load_predictor_model(predictor_dir_path)
 
         logger.info("Making predictions...")
-        predictions_arr = predict_with_model(
-            predictor_model,
-            transformed_train_data
-        )
+        with TimeAndMemoryTracker(logger) as _:
+            predictions_arr = predict_with_model(
+                predictor_model, transformed_train_data
+            )
 
         logger.info("Rescaling predictions...")
         rescaled_preds_arr = inverse_scale_predictions(
@@ -147,7 +151,7 @@ def run_batch_predictions(
             predictions_arr=rescaled_preds_arr,
             prediction_field_name=model_config["prediction_field_name"],
             id_field_name=data_schema.id_col,
-            time_field_name=data_schema.time_col
+            time_field_name=data_schema.time_col,
         )
 
         logger.info("Validating predictions dataframe...")
@@ -158,13 +162,6 @@ def run_batch_predictions(
         logger.info("Saving predictions dataframe...")
         save_dataframe_as_csv(
             dataframe=validated_predictions, file_path=predictions_file_path
-        )
-
-        end = time.time()
-        elapsed_time = end - start
-        logger.info(
-            "Batch predictions completed "
-            f"in {round(elapsed_time/60., 3)} minutes"
         )
 
     except Exception as exc:
