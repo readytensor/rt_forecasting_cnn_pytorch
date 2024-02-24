@@ -249,11 +249,11 @@ def get_peak_memory_usage():
     """
     Returns the peak memory usage by current cuda device (in MB) if available
     """
-    if not torch.cuda.is_available():
+    if not T.cuda.is_available():
         return None
 
-    current_device = torch.cuda.current_device()
-    peak_memory = torch.cuda.max_memory_allocated(current_device)
+    current_device = T.cuda.current_device()
+    peak_memory = T.cuda.max_memory_allocated(current_device)
     return peak_memory / (1024 * 1024)
 
 
@@ -269,9 +269,9 @@ class TimeAndMemoryTracker(object):
     def __enter__(self):
         tracemalloc.start()
         self.start_time = time.time()
-        if torch.cuda.is_available():
-            torch.cuda.reset_peak_memory_stats()  # Reset CUDA memory stats
-            torch.cuda.empty_cache()  # Clear CUDA cache
+        if T.cuda.is_available():
+            T.cuda.reset_peak_memory_stats()  # Reset CUDA memory stats
+            T.cuda.empty_cache()  # Clear CUDA cache
 
         return self
 
