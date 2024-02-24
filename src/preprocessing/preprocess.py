@@ -13,12 +13,13 @@ from preprocessing.pipeline import (
     train_pipeline,
     transform_inputs,
     save_pipeline,
-    load_pipeline
+    load_pipeline,
 )
 
 
 TRAINING_PIPELINE_FILE_NAME = "training_pipeline.joblib"
 INFERENCE_PIPELINE_FILE_NAME = "inference_pipeline.joblib"
+
 
 def get_preprocessing_pipelines(
     data_schema: Any,
@@ -27,7 +28,7 @@ def get_preprocessing_pipelines(
     default_hyperparameters: Dict,
 ) -> Tuple[Pipeline, Pipeline, int]:
     """
-    Get training and inference preprocessing pipeline. 
+    Get training and inference preprocessing pipeline.
 
     Args:
         data_schema (Any): A dictionary containing the data schema.
@@ -51,13 +52,14 @@ def get_preprocessing_pipelines(
         data_schema=data_schema,
         preprocessing_config=preprocessing_config,
         encode_len=encode_len,
-        use_exogenous=use_exogenous
+        use_exogenous=use_exogenous,
     )
     return training_pipeline, inference_pipeline, encode_len
 
 
 def fit_transform_with_pipeline(
-        pipeline: Pipeline, data: pd.DataFrame) -> Tuple[Pipeline, np.ndarray]:
+    pipeline: Pipeline, data: pd.DataFrame
+) -> Tuple[Pipeline, np.ndarray]:
     """
     Fit the preprocessing pipeline and transform data.
 
@@ -75,9 +77,8 @@ def fit_transform_with_pipeline(
 
 
 def transform_data(
-        preprocess_pipeline: Any,
-        data: pd.DataFrame
-    ) -> Tuple[pd.DataFrame, Union[pd.Series, None]]:
+    preprocess_pipeline: Any, data: pd.DataFrame
+) -> Tuple[pd.DataFrame, Union[pd.Series, None]]:
     """
     Transform the data using the preprocessing pipeline and target encoder.
 
@@ -98,7 +99,7 @@ def transform_data(
 def get_encode_len(train_data, data_schema, encode_to_decode_ratio):
     history_len = train_data[data_schema.time_col].nunique()
     decode_len = data_schema.forecast_length
-    if history_len <= 2 * decode_len:
+    if history_len < 2 * decode_len:
         raise ValueError(
             f"History length ({history_len}) must be at least 2x forecast length ({decode_len})"
         )
@@ -113,9 +114,7 @@ def get_encode_len(train_data, data_schema, encode_to_decode_ratio):
 
 
 def save_pipelines(
-    training_pipeline: Any,
-    inference_pipeline: Any,
-    preprocessing_dir_path: str
+    training_pipeline: Any, inference_pipeline: Any, preprocessing_dir_path: str
 ) -> None:
     """
     Save the preprocessing pipeline and target encoder to files.
@@ -130,12 +129,17 @@ def save_pipelines(
         os.makedirs(preprocessing_dir_path)
     save_pipeline(
         pipeline=training_pipeline,
-        file_path_and_name=os.path.join(preprocessing_dir_path, TRAINING_PIPELINE_FILE_NAME)
+        file_path_and_name=os.path.join(
+            preprocessing_dir_path, TRAINING_PIPELINE_FILE_NAME
+        ),
     )
     save_pipeline(
         pipeline=inference_pipeline,
-        file_path_and_name=os.path.join(preprocessing_dir_path, INFERENCE_PIPELINE_FILE_NAME)
+        file_path_and_name=os.path.join(
+            preprocessing_dir_path, INFERENCE_PIPELINE_FILE_NAME
+        ),
     )
+
 
 def save_preprocessing_pipeline(
     preprocess_pipeline: Any, preprocessing_dir_path: str, pipeline_type: str
@@ -163,10 +167,7 @@ def save_preprocessing_pipeline(
     )
 
 
-def load_pipeline_of_type(
-    preprocessing_dir_path: str,
-    pipeline_type: str
-) -> Pipeline:
+def load_pipeline_of_type(preprocessing_dir_path: str, pipeline_type: str) -> Pipeline:
     """
     Load the preprocessing pipeline and target encoder
 
@@ -189,7 +190,9 @@ def load_pipeline_of_type(
     return preprocess_pipeline
 
 
-def inverse_scale_predictions(predictions: np.ndarray, pipeline: Pipeline) -> np.ndarray:
+def inverse_scale_predictions(
+    predictions: np.ndarray, pipeline: Pipeline
+) -> np.ndarray:
     """
     Applies the inverse transformation of MinMax scaling to the predictions using the
     trained inference pipeline.
@@ -202,17 +205,19 @@ def inverse_scale_predictions(predictions: np.ndarray, pipeline: Pipeline) -> np
         np.ndarray: The inverse-scaled predictions.
     """
     # Retrieve the minmax_scaler from the pipeline
-    if 'minmax_scaler' in pipeline.named_steps:
-        minmax_scaler = pipeline.named_steps['minmax_scaler']
+    if "minmax_scaler" in pipeline.named_steps:
+        minmax_scaler = pipeline.named_steps["minmax_scaler"]
         return minmax_scaler.inverse_transform(predictions)
     else:
         raise ValueError("MinMaxScaler not found in the pipeline.")
 
 
-def offset_future_covariates_per_series(history_data: pd.DataFrame,
-                                        forecast_data: Optional[pd.DataFrame],
-                                        forecast_length: int,
-                                        data_schema: Any) -> pd.DataFrame:
+def offset_future_covariates_per_series(
+    history_data: pd.DataFrame,
+    forecast_data: Optional[pd.DataFrame],
+    forecast_length: int,
+    data_schema: Any,
+) -> pd.DataFrame:
     """
     Offsets the future covariates for each series in the historical data by the
     specified forecast length.
@@ -222,10 +227,10 @@ def offset_future_covariates_per_series(history_data: pd.DataFrame,
     Args:
         history_data (pd.DataFrame): The historical data containing past observations
                                      for multiple series.
-        forecast_data (Optional[pd.DataFrame]): The future covariates data for the 
+        forecast_data (Optional[pd.DataFrame]): The future covariates data for the
                                                 forecast period.
         forecast_length (int): The length of the forecast window.
-        data_schema (DataSchema): An object that contains the schema of the data, 
+        data_schema (DataSchema): An object that contains the schema of the data,
                                   including lists of past and future covariate names.
 
     Returns:
@@ -243,7 +248,9 @@ def offset_future_covariates_per_series(history_data: pd.DataFrame,
     )
     for series_id, group in history_data.groupby(data_schema.id_col):
         for col in data_schema.future_covariates:
-            offset_history_data.loc[group.index, col] = group[col].shift(-forecast_length)
+            offset_history_data.loc[group.index, col] = group[col].shift(
+                -forecast_length
+            )
 
     # If forecast data is provided, use it to fill the last forecast_length rows for each series
     if forecast_data is not None:
@@ -253,10 +260,12 @@ def offset_future_covariates_per_series(history_data: pd.DataFrame,
         )
         for series_id, group in forecast_data_copy.groupby(data_schema.id_col):
             for col in data_schema.future_covariates:
-                last_index = \
-                    offset_history_data[offset_history_data[data_schema.id_col] == series_id]\
-                    .index[-forecast_length:]
-                offset_history_data.loc[last_index, col] = group[col].values[:forecast_length]
+                last_index = offset_history_data[
+                    offset_history_data[data_schema.id_col] == series_id
+                ].index[-forecast_length:]
+                offset_history_data.loc[last_index, col] = group[col].values[
+                    :forecast_length
+                ]
 
     # fill nans with zero - these zeros dont matter, but null values cause issues so filling with zero
     for col in data_schema.future_covariates:

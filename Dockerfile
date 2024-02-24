@@ -2,18 +2,21 @@
 FROM nvidia/cuda:12.2.0-runtime-ubuntu20.04 as builder
 # Install OS dependencies
 RUN apt-get -y update && apt-get install -y --no-install-recommends \
-         ca-certificates \
-         dos2unix \
+    ca-certificates \
+    dos2unix \
     && rm -rf /var/lib/apt/lists/*
 # install python and pip and add symbolic link to python3
-RUN apt-get -y update && apt-get install -y --no-install-recommends \
-         python3.9 \
-         python3-pip \
-    && rm -rf /var/lib/apt/lists/* \
-    && ln -s /usr/bin/python3 /usr/bin/python
-# copy requirements file and and install
+RUN apt-get update && apt-get install -y software-properties-common
+RUN add-apt-repository ppa:deadsnakes/ppa
+RUN apt-get update && apt-get install -y python3.9 python3-pip
+
+RUN ln -sf /usr/bin/python3.9 /usr/bin/python
+RUN ln -sf /usr/bin/python3.9 /usr/bin/python3
+
 COPY ./requirements.txt /opt/
-RUN pip3 install --no-cache-dir -r /opt/requirements.txt
+RUN python3.9 -m pip install --upgrade pip
+RUN python3.9 -m pip install --no-cache-dir -r /opt/requirements.txt
+
 # copy src code into image and chmod scripts
 COPY src ./opt/src
 COPY ./entry_point.sh /opt/
