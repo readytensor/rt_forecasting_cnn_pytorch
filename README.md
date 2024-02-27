@@ -74,7 +74,7 @@ In this section we cover the following:
 
 - Create your virtual environment and install dependencies listed in `requirements.txt` which is inside the `root` directory.
 - Move the three example files (`smoke_test_forecasting_schema.json`, `smoke_test_forecasting_train.csv` and `smoke_test_forecasting_test.csv`) in the `examples` directory into the `./model_inputs_outputs/inputs/schema`, `./model_inputs_outputs/inputs/data/training` and `./model_inputs_outputs/inputs/data/testing` folders, respectively (or alternatively, place your custom dataset files in the same locations).
-- Run the script `src/train.py` to train the random forest classifier model. This will save the model artifacts, including the preprocessing pipeline and label encoder, in the path `./model_inputs_outputs/model/artifacts/`.
+- Run the script `src/train.py` to train the forecaster model. This will save the model artifacts, including the preprocessing pipeline and label encoder, in the path `./model_inputs_outputs/model/artifacts/`.
 - Run the script `src/predict.py` to run batch predictions using the trained model. This script will load the artifacts and create and save the predictions in a file called `predictions.csv` in the path `./model_inputs_outputs/outputs/predictions/`.
 
 ### To run with Docker
