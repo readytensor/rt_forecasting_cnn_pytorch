@@ -296,6 +296,7 @@ class MemoryMonitor:
         self.interval = interval  # Time between executions in seconds
         self.timer = None  # Placeholder for the timer object
         self.logger = logger
+        self.lock = threading.Lock()  # Lock for thread-safe updates to class variables
 
     def monitor_memory(self):
         process = psutil.Process(os.getpid())
@@ -305,27 +306,29 @@ class MemoryMonitor:
         for child in children:
             total_memory += child.memory_info().rss
 
-        # Check if the current memory usage is a new peak and update accordingly
-        MemoryMonitor.peak_memory = max(MemoryMonitor.peak_memory, total_memory)
+        with self.lock:
+            # Check if the current memory usage is a new peak and update accordingly
+            MemoryMonitor.peak_memory = max(MemoryMonitor.peak_memory, total_memory)
 
     def _schedule_monitor(self):
-        """Internal method to schedule the next execution"""
+        """Internal method to execute monitor_memory and schedule the next execution"""
         self.monitor_memory()
-        # Only reschedule if the timer has not been canceled
-        if self.timer is not None:
+        self.schedule_next()
+
+    def schedule_next(self):
+        """Schedules the next execution of the monitor task"""
+        if not self.timer or not self.timer.is_alive():
             self.timer = threading.Timer(self.interval, self._schedule_monitor)
             self.timer.start()
 
     def start(self):
         """Starts the periodic monitoring"""
-        if self.timer is not None:
-            return  # Prevent multiple timers from starting
-        self.timer = threading.Timer(self.interval, self._schedule_monitor)
-        self.timer.start()
+        if not self.timer or not self.timer.is_alive():
+            threading.Thread(target=self._schedule_monitor).start()
 
     def stop(self):
         """Stops the periodic monitoring"""
-        if self.timer is not None:
+        if self.timer and self.timer.is_alive():
             self.timer.cancel()
             self.timer = None
         self.logger.info(

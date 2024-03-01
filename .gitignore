@@ -31,3 +31,4 @@ env.bak/
 venv.bak/
 
 /tmp
+.DS_Store
