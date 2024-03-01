@@ -17,7 +17,7 @@ from utils import (
     read_csv_in_directory,
     read_json_as_dict,
     set_seeds,
-    TimeAndMemoryTracker,
+    ResourceTracker,
 )
 
 logger = get_logger(task_name="train")
@@ -51,60 +51,66 @@ def run_training(
     """
 
     try:
+        with ResourceTracker(logger=logger, monitoring_interval=5):
+            logger.info("Starting training...")
+            # load and save schema
+            logger.info("Loading and saving schema...")
+            data_schema = load_json_data_schema(input_schema_dir)
+            save_schema(schema=data_schema, save_dir_path=saved_schema_dir_path)
 
-        logger.info("Starting training...")
-        # load and save schema
-        logger.info("Loading and saving schema...")
-        data_schema = load_json_data_schema(input_schema_dir)
-        save_schema(schema=data_schema, save_dir_path=saved_schema_dir_path)
+            # load model config
+            logger.info("Loading model config...")
+            model_config = read_json_as_dict(model_config_file_path)
 
-        # load model config
-        logger.info("Loading model config...")
-        model_config = read_json_as_dict(model_config_file_path)
+            # set seeds
+            logger.info("Setting seeds...")
+            set_seeds(seed_value=model_config["seed_value"])
 
-        # set seeds
-        logger.info("Setting seeds...")
-        set_seeds(seed_value=model_config["seed_value"])
+            # load train data
+            logger.info("Loading train data...")
+            train_data = read_csv_in_directory(train_dir)
 
-        # load train data
-        logger.info("Loading train data...")
-        train_data = read_csv_in_directory(train_dir)
+            # validate the data
+            logger.info("Validating train data...")
+            validated_data = validate_data(
+                data=train_data, data_schema=data_schema, is_train=True
+            )
 
-        # validate the data
-        logger.info("Validating train data...")
-        validated_data = validate_data(
-            data=train_data, data_schema=data_schema, is_train=True
-        )
+            logger.info("Loading preprocessing config...")
+            preprocessing_config = read_json_as_dict(preprocessing_config_file_path)
 
-        logger.info("Loading preprocessing config...")
-        preprocessing_config = read_json_as_dict(preprocessing_config_file_path)
+            # use default hyperparameters to train model
+            logger.info("Loading hyperparameters...")
+            default_hyperparameters = read_json_as_dict(
+                default_hyperparameters_file_path
+            )
 
-        # use default hyperparameters to train model
-        logger.info("Loading hyperparameters...")
-        default_hyperparameters = read_json_as_dict(default_hyperparameters_file_path)
+            # fit and transform using pipeline and target encoder, then save them
+            logger.info("Training preprocessing pipeline...")
+            training_pipeline, inference_pipeline, encode_len = (
+                get_preprocessing_pipelines(
+                    data_schema,
+                    validated_data,
+                    preprocessing_config,
+                    default_hyperparameters,
+                )
+            )
+            trained_pipeline, transformed_data = fit_transform_with_pipeline(
+                training_pipeline, validated_data
+            )
+            print("Transformed training data shape:", transformed_data.shape)
 
-        # fit and transform using pipeline and target encoder, then save them
-        logger.info("Training preprocessing pipeline...")
-        training_pipeline, inference_pipeline, encode_len = get_preprocessing_pipelines(
-            data_schema, validated_data, preprocessing_config, default_hyperparameters
-        )
-        trained_pipeline, transformed_data = fit_transform_with_pipeline(
-            training_pipeline, validated_data
-        )
-        print("Transformed training data shape:", transformed_data.shape)
-
-        # Save pipelines
-        logger.info("Saving pipelines...")
-        save_pipelines(trained_pipeline, inference_pipeline, preprocessing_dir_path)
-
-        # # use default hyperparameters to train model
-        logger.info("Training forecaster...")
-        with TimeAndMemoryTracker(logger) as _:
+            # # use default hyperparameters to train model
+            logger.info("Training forecaster...")
             forecaster = train_predictor_model(
                 history=transformed_data,
                 forecast_length=data_schema.forecast_length,
                 hyperparameters=default_hyperparameters,
             )
+
+        # Save pipelines
+        logger.info("Saving pipelines...")
+        save_pipelines(trained_pipeline, inference_pipeline, preprocessing_dir_path)
 
         # save predictor model
         logger.info("Saving forecaster...")
