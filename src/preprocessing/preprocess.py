@@ -44,7 +44,11 @@ def get_preprocessing_pipelines(
     """
     # get encode len
     encode_to_decode_ratio = default_hyperparameters["encode_to_decode_ratio"]
-    encode_len = get_encode_len(data, data_schema, encode_to_decode_ratio)
+    min_windows = default_hyperparameters["min_windows"]
+    min_encode_len_ratio = default_hyperparameters["min_encode_len_ratio"]
+    encode_len = get_encode_len(
+        data, data_schema, encode_to_decode_ratio,
+        min_windows, min_encode_len_ratio)
     # whether to use exogenous variables
     use_exogenous = default_hyperparameters["use_exogenous"]
     # create training and inference pipelines
@@ -96,20 +100,65 @@ def transform_data(
     return transformed_inputs
 
 
-def get_encode_len(train_data, data_schema, encode_to_decode_ratio):
+def get_encode_len(train_data, data_schema, encode_to_decode_ratio,
+                   min_windows, min_encode_len_ratio):
+    """
+    Calculate the length of the encoding (history) window for time series forecasting,
+    given constraints on minimum window size, minimum number of windows, and the
+    ratio of encoding to decoding (forecast) length.
+
+    The function determines the optimal length of the history window used for training
+    the forecasting model. This length is constrained by the total available history,
+    the desired forecast period, the minimum ratio of history window to forecast window,
+    and the minimum number of sliding windows desired for model training.
+
+    Args:
+    - train_data (DataFrame): The dataset containing the time series data.
+    - data_schema (object): An object with metadata about the dataset, including:
+      - time_col (str): Name of the column in train_data representing time.
+      - forecast_length (int): The length of the forecast period.
+    - encode_to_decode_ratio (float): The maximum allowed ratio of the length of the
+      encoding window to the decoding (forecast) window length.
+    - min_encode_len_ratio (float): The minimum ratio of the encoding window length to
+                                    the decoding window length.
+                                    This is a hard minimum. 
+    - min_windows (int): The minimum number of sliding windows desired for training.
+                         Note that this is a "soft" minimum. The resulting number of
+                         windows might be lower if history is shorter than required.
+
+    Returns:
+    - int: The calculated length of the encoding window.
+
+    Raises:
+    - ValueError: If the total history length is not sufficient for the minimum
+      required encoding and decoding lengths plus the minimum number of windows.
+
+    The function first calculates the minimum required encoding length based on
+    the min_encode_len_ratio and ensures that the total history is sufficient to
+    create at least 1 window by using the minimum encoding length plus the
+    forecast period. 
+    It then keeps the encoding length constant as history length increases
+    which will increase the number of windows. If given enough history to achieve the 
+    minimum number of windows, it then increases the encoding length, up to a 
+    maximum of  encode_to_decode_ratio * forecast_length. 
+    """
     history_len = train_data[data_schema.time_col].nunique()
     decode_len = data_schema.forecast_length
-    if history_len < 2 * decode_len:
-        raise ValueError(
-            f"History length ({history_len}) must be at least 2x forecast length ({decode_len})"
-        )
-    target_encode_len = int(decode_len * encode_to_decode_ratio)
-    train_history_len = history_len - decode_len
+    min_encode_len = max(1, int(decode_len * min_encode_len_ratio))
 
-    if train_history_len < target_encode_len:
-        encode_len = train_history_len
+    if history_len < decode_len + min_encode_len:
+        raise ValueError(
+            f"History length ({history_len}) must be at least forecast length"
+            f" ({decode_len}) + min_encode_len ({min_encode_len})"
+        )
+
+    available_len = history_len - decode_len - min_windows + 1
+    if available_len < min_encode_len:
+        encode_len = min_encode_len
     else:
-        encode_len = target_encode_len
+        encode_len = available_len
+    if encode_len > int(encode_to_decode_ratio * decode_len):
+        encode_len = int(encode_to_decode_ratio * decode_len)
     return encode_len
 
 
