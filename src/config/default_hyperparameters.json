@@ -1,5 +1,7 @@
 {
   "encode_to_decode_ratio": 4,
+  "min_windows": 25,
+  "min_encode_len_ratio": 0.4,
   "activation": "relu",
   "use_exogenous": true
 }
