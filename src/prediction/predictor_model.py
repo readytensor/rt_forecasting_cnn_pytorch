@@ -130,7 +130,7 @@ class Net(Module):
             padding="same",
         )
         self.fc = Linear(
-            in_features=dim3 * self.encode_len,
+            in_features=dim3 * self.decode_len,
             out_features=self.decode_len,
         )
         self.flatten = Flatten()
@@ -141,6 +141,7 @@ class Net(Module):
         x = self.conv2(x)
         x = self.conv3(x)
         x = x.permute(0, 2, 1)
+        x = x[:, -self.decode_len:, :]
         x = self.flatten(x)
         x = self.activation(x)
         x = self.fc(x)
@@ -457,15 +458,15 @@ def evaluate_predictor_model(
 if __name__ == "__main__":
 
     N = 64
-    T = 120
-    D = 6
-    encode_len=48
+    T = 90
+    D = 1
+    encode_len=72
     decode_len = T - encode_len
 
     model = Net(
         feat_dim=D,
-        encode_len=48,
-        decode_len=72,
+        encode_len=encode_len,
+        decode_len=decode_len,
         activation="relu",
     )
     model.to(device=device)
