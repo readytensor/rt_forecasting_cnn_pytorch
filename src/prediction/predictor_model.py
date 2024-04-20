@@ -100,7 +100,7 @@ class Net(Module):
     def __init__(self, feat_dim, encode_len, decode_len, activation):
         super(Net, self).__init__()
         self.feat_dim = feat_dim
-        self.encode_length = encode_len
+        self.encode_len = encode_len
         self.decode_len = decode_len
         self.activation = get_activation(activation)
 
@@ -116,7 +116,11 @@ class Net(Module):
             padding="same",
         )
         self.conv2 = Conv1d(
-            in_channels=dim1, out_channels=dim2, kernel_size=8, stride=1, padding="same"
+            in_channels=dim1,
+            out_channels=dim2,
+            kernel_size=8,
+            stride=1,
+            padding="same"
         )
         self.conv3 = Conv1d(
             in_channels=dim2,
@@ -126,7 +130,7 @@ class Net(Module):
             padding="same",
         )
         self.fc = Linear(
-            in_features=dim3 * min(self.decode_len, self.encode_length),
+            in_features=dim3 * self.encode_len,
             out_features=self.decode_len,
         )
         self.flatten = Flatten()
@@ -137,7 +141,6 @@ class Net(Module):
         x = self.conv2(x)
         x = self.conv3(x)
         x = x.permute(0, 2, 1)
-        x = x[:, -self.decode_len :, :]
         x = self.flatten(x)
         x = self.activation(x)
         x = self.fc(x)
@@ -173,6 +176,8 @@ class Forecaster:
         self.activation = activation
         self.batch_size = 64
 
+        print("encode_len/decode_len", encode_len, decode_len)
+
         self.net = Net(
             feat_dim=self.feat_dim,
             encode_len=self.encode_len,
@@ -181,7 +186,6 @@ class Forecaster:
         )
 
         self.net.to(device)
-        # print(self.net.get_num_parameters()) ; sys.exit()
         self.criterion = MSELoss()
         self.optimizer = optim.Adam(self.net.parameters())
         self.print_period = 1
@@ -224,16 +228,15 @@ class Forecaster:
         else:
             valid_X, valid_y = None, None
 
-        # print(train_X.shape, train_y.shape)
-        # if valid_X is not None: print(valid_X.shape, valid_y.shape)
-
         patience = get_patience_factor(train_X.shape[0])
         # print(f"{patience=}")
 
         train_X, train_y = torch.FloatTensor(train_X), torch.FloatTensor(train_y)
         train_dataset = CustomDataset(train_X, train_y)
         train_loader = DataLoader(
-            dataset=train_dataset, batch_size=int(self.batch_size), shuffle=True
+            dataset=train_dataset,
+            batch_size=int(self.batch_size),
+            shuffle=True
         )
 
         if valid_X is not None and valid_y is not None:
@@ -272,23 +275,15 @@ class Forecaster:
             self.net.train()
             for data in train_loader:
                 X, y = data[0].to(device), data[1].to(device)
-                # sys.exit()
-                # print(inputs); sys.exit()
-                # Feed Forward
                 preds = self.net(X)
-                # Loss Calculation
                 loss = self.criterion(y, preds)
-                # Clear the gradient buffer (we don't want to accumulate gradients)
                 self.optimizer.zero_grad()
-                # Backpropagation
                 loss.backward()
-                # Weight Update: w <-- w - lr * gradient
                 self.optimizer.step()
 
             current_loss = loss.item()
 
             if use_early_stopping:
-                # Early stopping
                 if valid_loader is not None:
                     current_loss = get_loss(
                         self.net, device, valid_loader, self.criterion
@@ -461,20 +456,23 @@ def evaluate_predictor_model(
 
 if __name__ == "__main__":
 
-    N = 100
-    T = 25
-    D = 3
+    N = 64
+    T = 120
+    D = 6
+    encode_len=48
+    decode_len = T - encode_len
 
     model = Net(
         feat_dim=D,
-        latent_dim=13,
-        n_cnnlayers=2,
-        decode_len=10,
+        encode_len=48,
+        decode_len=72,
         activation="relu",
     )
     model.to(device=device)
 
-    X = torch.from_numpy(np.random.randn(N, T, D).astype(np.float32)).to(device)
+    X = torch.from_numpy(np.random.randn(N, encode_len, D).astype(np.float32)).to(device)
 
-    preds = model(X)
-    print(preds.shape)
+    print(model)
+
+    preds = model(X).cpu().detach().numpy()
+    print("output", preds.shape)
