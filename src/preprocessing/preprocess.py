@@ -47,8 +47,8 @@ def get_preprocessing_pipelines(
     min_windows = default_hyperparameters["min_windows"]
     min_encode_len_ratio = default_hyperparameters["min_encode_len_ratio"]
     encode_len = get_encode_len(
-        data, data_schema, encode_to_decode_ratio,
-        min_windows, min_encode_len_ratio)
+        data, data_schema, encode_to_decode_ratio, min_windows, min_encode_len_ratio
+    )
     # whether to use exogenous variables
     use_exogenous = default_hyperparameters["use_exogenous"]
     # create training and inference pipelines
@@ -100,8 +100,9 @@ def transform_data(
     return transformed_inputs
 
 
-def get_encode_len(train_data, data_schema, encode_to_decode_ratio,
-                   min_windows, min_encode_len_ratio):
+def get_encode_len(
+    train_data, data_schema, encode_to_decode_ratio, min_windows, min_encode_len_ratio
+):
     """
     Calculate the length of the encoding (history) window for time series forecasting,
     given constraints on minimum window size, minimum number of windows, and the
@@ -121,7 +122,7 @@ def get_encode_len(train_data, data_schema, encode_to_decode_ratio,
       encoding window to the decoding (forecast) window length.
     - min_encode_len_ratio (float): The minimum ratio of the encoding window length to
                                     the decoding window length.
-                                    This is a hard minimum. 
+                                    This is a hard minimum.
     - min_windows (int): The minimum number of sliding windows desired for training.
                          Note that this is a "soft" minimum. The resulting number of
                          windows might be lower if history is shorter than required.
@@ -136,16 +137,15 @@ def get_encode_len(train_data, data_schema, encode_to_decode_ratio,
     The function first calculates the minimum required encoding length based on
     the min_encode_len_ratio and ensures that the total history is sufficient to
     create at least 1 window by using the minimum encoding length plus the
-    forecast period. 
+    forecast period.
     It then keeps the encoding length constant as history length increases
-    which will increase the number of windows. If given enough history to achieve the 
-    minimum number of windows, it then increases the encoding length, up to a 
-    maximum of  encode_to_decode_ratio * forecast_length. 
+    which will increase the number of windows. If given enough history to achieve the
+    minimum number of windows, it then increases the encoding length, up to a
+    maximum of  encode_to_decode_ratio * forecast_length.
     """
     history_len = train_data[data_schema.time_col].nunique()
     decode_len = data_schema.forecast_length
     min_encode_len = max(1, int(decode_len * min_encode_len_ratio))
-
     if history_len < decode_len + min_encode_len:
         raise ValueError(
             f"History length ({history_len}) must be at least forecast length"
