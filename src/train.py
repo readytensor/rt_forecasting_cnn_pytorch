@@ -1,5 +1,3 @@
-import time
-
 from config import paths
 from data_models.data_validator import validate_data
 from logger import get_logger, log_error
