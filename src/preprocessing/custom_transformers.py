@@ -283,24 +283,32 @@ class TimeSeriesWindowGenerator(BaseEstimator, TransformerMixin):
         if self.window_size > time_length:
             raise ValueError("Window size must be less than or equal to the time dimension length")
 
-        # Calculate the total number of windows per series
-        n_windows_per_series = 1 + (time_length - self.window_size) // self.stride
+        # Calculate the total number of possible windows per series
+        max_windows_per_series = 1 + (time_length - self.window_size) // self.stride
 
-        # Create an array of starting indices for each window
-        start_indices = np.arange(0, n_windows_per_series * self.stride, self.stride)
+        # Determine the number of windows to select per series
+        windows_per_series = min(1 + self.max_windows // n_series, max_windows_per_series)
 
-        # Use broadcasting to generate window indices
-        window_indices = start_indices[:, None] + np.arange(self.window_size)
+        # Initialize an empty list to store the windows
+        all_windows = []
 
-        # Generate windows for each series using advanced indexing
-        windows = X[:, window_indices, :]
+        for series in range(n_series):
+            # Randomly choose starting indices for windows
+            start_indices = np.random.choice(
+                max_windows_per_series, size=windows_per_series, replace=False
+            )
 
-        # Reshape to the desired output format [N' (total windows across all series), W, D]
-        windows = windows.transpose(1, 0, 2, 3).reshape(-1, self.window_size, n_features)
+            # Generate the windows for the current series
+            for start_idx in start_indices:
+                window = X[
+                    series,
+                    start_idx * self.stride:start_idx * self.stride + self.window_size,
+                    :
+                ]
+                all_windows.append(window)
 
-        if windows.shape[0] > self.max_windows:
-            indices = np.random.choice(windows.shape[0], self.max_windows, replace=False)
-            windows = windows[indices]
+        # Convert the list of windows to a numpy array
+        windows = np.array(all_windows)
         return windows
 
 
